@@ -20,8 +20,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         super().end_headers()
 
+    def _json(self, obj):
+        body = json.dumps(obj).encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _read_body(self):
+        try:
+            n = int(self.headers.get('Content-Length', 0))
+            return json.loads(self.rfile.read(n) or b'{}')
+        except Exception:
+            return {}
+
     def do_POST(self):
-        if self.path.rstrip('/') == '/api/update':
+        path = self.path.rstrip('/')
+        if path == '/api/update':
             updated = False; log = ''
             try:
                 subprocess.run(['git', 'fetch', '--quiet', 'origin'], cwd=APPDIR, timeout=60)
@@ -36,11 +51,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     log = 'already up to date'
             except Exception as e:
                 log = 'error: ' + str(e)
-            body = json.dumps({'updated': updated, 'log': log}).encode()
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(body)
+            self._json({'updated': updated, 'log': log})
+
+        elif path == '/api/screen':
+            # {"act":"on"|"off"}  → 화면 즉시 켜기/끄기
+            act = (self._read_body().get('act') or 'on')
+            act = 'off' if act == 'off' else 'on'
+            try:
+                subprocess.run(['bash', os.path.join(APPDIR, 'screen.sh'), act], timeout=20)
+                self._json({'ok': True, 'act': act})
+            except Exception as e:
+                self._json({'ok': False, 'error': str(e)})
+
+        elif path == '/api/schedule':
+            # {"enabled":bool, "on":"07:00", "off":"23:00"}  → cron 등록/해제
+            b = self._read_body()
+            try:
+                if b.get('enabled'):
+                    subprocess.run(['bash', os.path.join(APPDIR, 'schedule.sh'),
+                                    str(b.get('on', '07:00')), str(b.get('off', '23:00'))], timeout=20)
+                else:
+                    subprocess.run(['bash', os.path.join(APPDIR, 'schedule.sh'), 'off'], timeout=20)
+                self._json({'ok': True})
+            except Exception as e:
+                self._json({'ok': False, 'error': str(e)})
+
         else:
             self.send_response(404); self.end_headers()
 

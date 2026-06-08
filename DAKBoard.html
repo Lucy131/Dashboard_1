@@ -256,6 +256,9 @@
   .disp-zoom-val{font-size:15px;color:var(--fg-2);flex:0 0 auto;min-width:48px;text-align:right;
     font-variant-numeric:tabular-nums;}
   .disp-zoom input[type=range]{flex:1;accent-color:#2f6df0;height:4px;}
+  .sw-row{display:flex;align-items:center;justify-content:space-between;font-size:17px;color:var(--fg-2);margin-bottom:12px;}
+  .sw-row input[type=checkbox]{width:20px;height:20px;accent-color:#2f6df0;cursor:pointer;}
+  #schTimes input[type=time]{font-family:'Barlow','Noto Sans KR',sans-serif;font-size:16px;padding:7px 10px;margin-top:0;}
 
   /* ---- birthday editor ---- */
   .bday-add{display:flex;gap:10px;align-items:stretch;}
@@ -415,6 +418,22 @@
               <span id="bgSecVal" class="disp-zoom-val">12초</span>
             </div>
             <div class="note">배경 슬라이드쇼의 <b>흐림·어둡기·전환 간격</b>을 조절합니다. 글자가 잘 안 보이면 흐림/어둡기를 높이세요. <b>기본값으로</b> 버튼으로 언제든 처음 설정(흐림 2px · 어둡기 34% · 12초)으로 되돌릴 수 있습니다.</div>
+
+            <div class="sec-divider"></div>
+            <div class="field-label">화면 자동 켜짐/꺼짐</div>
+            <label class="sw-row"><span>자동 끄기 사용</span><input type="checkbox" id="schEnable"></label>
+            <div class="disp-zoom" id="schTimes" style="opacity:.5;pointer-events:none;">
+              <span class="disp-zoom-label">켜짐</span>
+              <input id="schOn" type="time" value="07:00" class="td-input" style="flex:0 0 auto;width:auto;">
+              <span class="disp-zoom-label">꺼짐</span>
+              <input id="schOff" type="time" value="23:00" class="td-input" style="flex:0 0 auto;width:auto;">
+            </div>
+            <div class="td-actions">
+              <button class="btn primary" id="schSave">적용</button>
+              <button class="btn ghost" id="scrOff">지금 끄기</button>
+              <button class="btn ghost" id="scrOn">지금 켜기</button>
+            </div>
+            <div class="note" id="schNote">정해진 시각에 화면(디스플레이)이 자동으로 꺼지고 켜집니다. 끈 동안에도 대시보드는 계속 돌아가며, 켜질 때 즉시 다시 보입니다.<br><br>⚠️ 이 기능은 파이에서 <b>server.py</b>로 구동될 때만 동작합니다(새 패키지로 <code>install.sh</code> 1회 실행). 적용이 안 되면 파이에서 <code>bash schedule.sh 07:00 23:00</code> 로도 설정할 수 있어요.</div>
           </section>
 
           <!-- ===== 날씨 · 위치 ===== -->
@@ -700,7 +719,7 @@
   })();
 
   /* ---------------- Version + update check ---------------- */
-  const APP_VERSION='2026.06.08.23';
+  const APP_VERSION='2026.06.08.25';
   (function(){
     const verEl=document.getElementById('appVer');
     const statusEl=document.getElementById('updStatus');
@@ -964,6 +983,35 @@
   }
   wireDisplay();
   applyBg();
+
+  /* ---------------- Screen on/off schedule ---------------- */
+  (function(){
+    const en=document.getElementById('schEnable');
+    const times=document.getElementById('schTimes');
+    const on=document.getElementById('schOn'), off=document.getElementById('schOff');
+    const save=document.getElementById('schSave');
+    const note=document.getElementById('schNote');
+    if(!en) return;
+    let cfg={enabled:false,on:'07:00',off:'23:00'};
+    try{ cfg=Object.assign(cfg, JSON.parse(localStorage.getItem('dak.schedule')||'{}')); }catch(_){}
+    en.checked=!!cfg.enabled; on.value=cfg.on; off.value=cfg.off;
+    function syncUI(){ times.style.opacity=en.checked?'1':'.5'; times.style.pointerEvents=en.checked?'auto':'none'; }
+    syncUI();
+    en.addEventListener('change',syncUI);
+    function post(path,body){ return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); }
+    if(save) save.addEventListener('click',async()=>{
+      cfg={enabled:en.checked, on:on.value||'07:00', off:off.value||'23:00'};
+      localStorage.setItem('dak.schedule',JSON.stringify(cfg));
+      try{
+        const r=await post('api/schedule',cfg);
+        const j=await r.json().catch(()=>({}));
+        note.textContent = j.ok ? (cfg.enabled?`적용됨: 매일 ${cfg.on} 켜짐 / ${cfg.off} 꺼짐`:'자동 끄기 해제됨') : '서버 연결 안 됨 — 파이에서 server.py로 실행 중인지 확인하세요.';
+      }catch(e){ note.textContent='서버 연결 안 됨 — 이 기능은 파이의 server.py에서만 동작합니다.'; }
+    });
+    const so=document.getElementById('scrOff'), sn=document.getElementById('scrOn');
+    if(so) so.addEventListener('click',()=>post('api/screen',{act:'off'}).catch(()=>{}));
+    if(sn) sn.addEventListener('click',()=>post('api/screen',{act:'on'}).catch(()=>{}));
+  })();
 
   fit();window.addEventListener('resize',fit);
 
