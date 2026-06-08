@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAKBoard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@200;300;400;500;600&family=Caveat:wght@600;700&family=Noto+Color+Emoji&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --w:936px;
+    --h:1566px;
+    --fg:#ffffff;
+    --fg-2:rgba(255,255,255,.78);
+    --fg-3:rgba(255,255,255,.55);
+    --rule:rgba(255,255,255,.42);
+    --grid:rgba(255,255,255,.16);
+    --ev-blue:#bfe1f6;
+    --ev-blue-ink:#13334a;
+    --ev-red:#ec2b2b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:#1b1b1d;
+    font-family:'Barlow','Noto Sans KR','Noto Color Emoji',system-ui,sans-serif;
+    color:var(--fg);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  #stage{position:fixed;inset:0;overflow:hidden;background:#15171c;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;}
+  #stage img{-webkit-user-drag:none;user-drag:none;}
+  #board{
+    width:var(--w);height:var(--h);position:relative;overflow:hidden;
+    transform-origin:top left;background:#222;
+  }
+
+  /* ---- background photo slideshow + scrim ---- */
+  #bg{position:absolute;inset:0;overflow:hidden;background:#15171c;}
+  #bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transition:opacity 1.6s ease-in-out;transform:scale(1.06);
+    filter:blur(2px) brightness(.66) saturate(.95);}
+  #bg img.on{opacity:1;}
+  .scrim{position:absolute;inset:0;pointer-events:none;
+    background:
+      linear-gradient(180deg, rgba(8,10,14,.74) 0%, rgba(8,10,14,.6) 30%, rgba(8,10,14,.58) 55%, rgba(8,10,14,.72) 100%);
+  }
+  /* readability veil behind the text columns */
+  .content::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 36%, rgba(8,10,14,.34) 0%, rgba(8,10,14,0) 60%);}
+
+  /* ---- content ---- */
+  .content{position:absolute;inset:0;display:flex;flex-direction:column;
+    padding:15px 34px 26px;}
+
+  /* clock */
+  .clock-wrap{text-align:center;padding-top:34px;}
+  .clock{font-weight:300;font-size:172px;line-height:.92;letter-spacing:-2px;
+    display:inline-flex;align-items:flex-start;justify-content:center;
+    text-shadow:0 2px 18px rgba(0,0,0,.45);}
+  .clock .sec{font-size:54px;font-weight:300;margin-top:14px;margin-left:6px;color:var(--fg-2);}
+  .date{font-weight:400;font-size:46px;margin-top:6px;letter-spacing:.3px;
+    text-shadow:0 2px 14px rgba(0,0,0,.45);}
+
+  .rule{height:0;border-top:1.5px solid var(--rule);margin:22px 0;}
+
+  /* ---- middle : weather + todo ---- */
+  .mid{display:flex;gap:30px;align-items:flex-start;}
+  .weather{flex:1.15;min-width:0;}
+  .now{display:flex;align-items:flex-start;gap:14px;}
+  .now .temp{font-weight:300;font-size:62px;line-height:1;position:relative;}
+  .now .temp .deg{position:absolute;top:4px;right:-16px;font-size:24px;}
+  .now .wi-big{width:74px;height:60px;margin-top:6px;color:var(--fg);}
+  .now-meta{margin-top:14px;display:flex;flex-direction:column;gap:7px;}
+  .now-meta .l{font-size:22px;color:var(--fg-2);display:flex;align-items:center;gap:9px;}
+  .now-meta .l svg{width:17px;height:22px;opacity:.9;}
+  .cond{font-size:22px;color:var(--fg);margin-top:2px;}
+
+  .forecast{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:20px;}
+  .fc{display:flex;flex-direction:column;align-items:center;gap:7px;}
+  .fc .day{font-size:21px;color:var(--fg);}
+  .fc .ic{width:46px;height:40px;color:#fff;}
+  .fc .pop{font-size:18px;color:var(--fg-2);display:flex;align-items:center;gap:4px;}
+  .fc .pop svg{width:9px;height:13px;}
+  .fc .mm{font-size:17px;color:var(--fg-3);}
+  .fc .hl{font-size:19px;color:var(--fg);display:flex;gap:9px;margin-top:1px;}
+  .fc .hl .lo{color:var(--fg-3);}
+
+  /* todo */
+  .todo{flex:1;min-width:0;padding-top:2px;display:flex;flex-direction:column;gap:13px;overflow:hidden;}
+  .todo .item{display:flex;align-items:flex-start;gap:11px;font-size:22px;color:var(--fg);
+    line-height:1.22;transition:opacity .3s;}
+  .todo .item.done{opacity:.42;}
+  .todo .cb{width:23px;height:23px;border:2px solid var(--fg-2);border-radius:6px;flex:0 0 auto;
+    margin-top:2px;display:flex;align-items:center;justify-content:center;color:transparent;}
+  .todo .item.done .cb{background:rgba(255,255,255,.88);border-color:rgba(255,255,255,.88);color:#1b1b1d;}
+  .todo .cb svg{width:15px;height:15px;}
+  .todo .star{color:#ffcf3f;flex:0 0 auto;margin-top:3px;line-height:0;}
+  .todo .star svg{width:18px;height:18px;}
+  .todo .txt{flex:1;min-width:0;}
+  .todo .item.done .txt{text-decoration:line-through;}
+  .todo .who{display:inline-block;font-size:14px;font-weight:600;padding:1px 9px;border-radius:11px;
+    margin-left:8px;vertical-align:2px;white-space:nowrap;}
+  .todo .more{font-size:16px;color:var(--fg-3);padding-left:34px;}
+  .todo .empty{font-size:19px;color:var(--fg-3);padding-top:4px;}
+
+  /* ---- calendar ---- */
+  .cal{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .cal .dow{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal .dow div{font-size:25px;font-weight:500;padding:0 0 8px 4px;}
+  .cal .dow div:first-child{color:var(--fg);}
+  .cal-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);
+    border-top:1.5px solid var(--grid);}
+  .cell{border-bottom:1.5px solid var(--grid);padding:9px 6px 4px 6px;
+    position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:5px;}
+  .cell:not(:nth-child(7n)){border-right:1.5px solid var(--grid);}
+  .cell .dnum{font-size:25px;font-weight:500;color:var(--fg);line-height:1;
+    display:inline-flex;align-items:center;gap:5px;align-self:flex-start;}
+  .cell.dim .dnum{color:var(--fg-3);}
+  .cell .mon{font-size:25px;font-weight:500;}
+  .cell.today .dnum{color:#fff;align-self:stretch;}
+  .cell.today .today-tag{flex:1;text-align:center;font-family:'Caveat','Noto Sans KR',cursive;font-weight:700;
+    font-size:27px;line-height:1;color:#7cc6ff;transform:translateY(1px);
+    text-shadow:0 1px 6px rgba(0,0,0,.4);}
+  .ev{font-size:18px;line-height:1.12;padding:3px 6px;border-radius:3px;
+    white-space:normal;word-break:break-word;}
+  .ev.blue{background:var(--ev-blue);color:var(--ev-blue-ink);}
+  .ev.red{background:var(--ev-red);color:#fff;}
+  .ev.bday{background:#e7d8ff;color:#3a2566;}
+  .ev-more{font-size:14px;color:var(--fg-3);padding:1px 6px;}
+
+  /* hint */
+  .hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:40;
+    background:rgba(20,20,22,.82);border:1px solid rgba(255,255,255,.18);border-radius:11px;
+    padding:7px 16px;font-size:14px;color:var(--fg-2);backdrop-filter:blur(3px);
+    transition:opacity .4s;}
+  .hint b{color:#fff;font-weight:500;}
+
+  /* ---- location pill / gear ---- */
+  .loc-btn{position:absolute;top:20px;right:20px;z-index:8;white-space:nowrap;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    background:rgba(20,22,26,.42);border:1px solid rgba(255,255,255,.22);
+    border-radius:50%;width:46px;height:46px;padding:0;color:var(--fg-2);
+    backdrop-filter:blur(4px);transition:background .15s,color .15s;}
+  .loc-btn:hover{background:rgba(30,33,38,.7);color:#fff;}
+  .loc-btn svg{width:22px;height:22px;opacity:.9;}
+
+  /* ---- settings modal (fixed, unscaled) ---- */
+  .modal-bg{position:fixed;inset:0;z-index:100;display:none;
+    align-items:center;justify-content:center;
+    background:rgba(8,9,11,.62);backdrop-filter:blur(6px);}
+  .modal-bg.open{display:flex;}
+  .modal{width:760px;max-width:94vw;height:600px;max-height:88vh;overflow:hidden;
+    background:#1c1e22;border:1px solid rgba(255,255,255,.13);border-radius:18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;
+    font-family:'Barlow','Noto Sans KR',sans-serif;color:#fff;}
+  .modal header{display:flex;align-items:center;justify-content:space-between;
+    padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,.09);}
+  .modal header h2{margin:0;font-size:22px;font-weight:600;letter-spacing:.2px;white-space:nowrap;}
+  .modal header .x{cursor:pointer;border:none;background:transparent;color:var(--fg-3);
+    font-size:26px;line-height:1;padding:2px 6px;border-radius:8px;}
+  .modal header .x:hover{color:#fff;background:rgba(255,255,255,.08);}
+  .modal .body{padding:20px 22px 22px;overflow-y:auto;}
+  /* two-column settings: left nav + right content */
+  .modal .body.settings{display:flex;padding:0;overflow:hidden;flex:1;min-height:0;}
+  .settings-nav{flex:0 0 196px;border-right:1px solid rgba(255,255,255,.09);
+    padding:14px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+  .nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    font-family:'Barlow','Noto Sans KR',sans-serif;font-size:16px;color:var(--fg-2);white-space:nowrap;
+    background:transparent;border:none;border-radius:10px;padding:11px 12px;line-height:1.2;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{background:rgba(47,109,240,.18);color:#fff;}
+  .nav-item .ni-ic{font-size:18px;flex:0 0 auto;width:22px;text-align:center;}
+  .settings-content{flex:1;min-width:0;overflow-y:auto;padding:22px 26px 26px;}
+  .settings-panel{display:none;}
+  .settings-panel.active{display:block;}
+  .panel-title{margin:0 0 18px;font-size:21px;font-weight:600;letter-spacing:.2px;}
+  /* version + update footer */
+  .nav-foot{margin-top:auto;padding:12px 6px 4px;border-top:1px solid rgba(255,255,255,.08);
+    display:flex;flex-direction:column;gap:7px;}
+  .nav-ver{font-size:13px;color:var(--fg-3);}
+  .nav-ver span{color:var(--fg-2);font-variant-numeric:tabular-nums;}
+  .nav-upd{font-size:13px;color:var(--fg-3);display:flex;align-items:center;gap:6px;}
+  .nav-upd.ok{color:#5fd08a;}
+  .nav-upd.new{color:#ffcf3f;}
+  .nav-upd.off{color:var(--fg-3);}
+  .upd-btn{font-family:'Barlow','Noto Sans KR',sans-serif;font-size:14px;font-weight:600;cursor:pointer;
+    background:#2f6df0;color:#fff;border:none;border-radius:9px;padding:9px 12px;margin-top:2px;}
+  .upd-btn:hover{background:#2a61d6;}
+  .field-label{font-size:14px;color:var(--fg-3);text-transform:uppercase;
+    letter-spacing:.7px;font-weight:600;margin-bottom:9px;}
+  .cur-loc{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:22px;
+    padding:12px 14px;background:rgba(255,255,255,.05);border-radius:11px;}
+  .cur-loc svg{width:18px;height:18px;color:#5fd08a;flex:0 0 auto;}
+  .cur-loc .sub{color:var(--fg-3);font-size:15px;}
+  .search{position:relative;}
+  .search input{width:100%;box-sizing:border-box;font-family:'Barlow','Noto Sans KR',sans-serif;
+    font-size:19px;color:#fff;background:#26282d;border:1px solid rgba(255,255,255,.14);
+    border-radius:11px;padding:13px 15px;outline:none;}
+  .search input:focus{border-color:rgba(120,180,255,.6);}
+  .search input::placeholder{color:var(--fg-3);}
+  .results{margin-top:10px;display:flex;flex-direction:column;gap:2px;
+    max-height:300px;overflow-y:auto;}
+  .res{display:flex;align-items:baseline;gap:9px;text-align:left;cursor:pointer;
+    background:transparent;border:none;color:#fff;font-family:'Barlow','Noto Sans KR',sans-serif;
+    padding:12px 13px;border-radius:10px;font-size:18px;}
+  .res:hover{background:rgba(255,255,255,.07);}
+  .res .sub{color:var(--fg-3);font-size:14px;}
+  .results .empty{color:var(--fg-3);font-size:16px;padding:14px 4px;}
+  .modal .note{font-size:13px;color:var(--fg-3);line-height:1.5;margin-top:18px;
+    padding-top:16px;border-top:1px solid rgba(255,255,255,.08);}
+
+  /* ---- To Do settings controls ---- */
+  .sec-divider{height:1px;background:rgba(255,255,255,.09);margin:22px 0;}
+  .td-status{display:flex;align-items:center;gap:9px;font-size:16px;color:var(--fg-2);margin-bottom:12px;white-space:nowrap;}
+  .td-status .dot{width:8px;height:8px;border-radius:50%;background:#5fd08a;box-shadow:0 0 7px #5fd08a;flex:0 0 auto;}
+  .td-status .dot.off{background:#8a8f98;box-shadow:none;}
+  .td-status .dot.err{background:#e0533a;box-shadow:0 0 7px #e0533a;}
+  .td-input{width:100%;box-sizing:border-box;font-family:'Barlow','Noto Sans KR',sans-serif;font-size:17px;color:#fff;
+    background:#26282d;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:12px 14px;outline:none;}
+  .td-input:focus{border-color:rgba(120,180,255,.6);}
+  .td-input::placeholder{color:var(--fg-3);}
+  .td-actions{display:flex;gap:10px;margin-top:10px;}
+  .btn{font-family:'Barlow','Noto Sans KR',sans-serif;font-size:17px;font-weight:500;cursor:pointer;
+    border-radius:11px;padding:11px 16px;border:1px solid transparent;transition:background .15s;}
+  .btn.primary{background:#2f6df0;color:#fff;flex:1;}
+  .btn.primary:hover{background:#2a61d6;}
+  .btn.ghost{background:transparent;color:var(--fg-2);border-color:rgba(255,255,255,.18);}
+  .btn.ghost:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .td-select{width:100%;box-sizing:border-box;margin-top:11px;font-family:'Barlow','Noto Sans KR',sans-serif;font-size:17px;
+    color:#fff;background:#26282d;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:12px 14px;}
+
+  /* ---- display settings ---- */
+  .disp-custom{display:none;align-items:center;gap:10px;margin-top:10px;}
+  .disp-custom .td-input{flex:1;margin-top:0;}
+  .disp-x{color:var(--fg-2);font-size:18px;flex:0 0 auto;}
+  .disp-zoom{display:flex;align-items:center;gap:12px;margin-top:14px;}
+  .disp-zoom-label{font-size:16px;color:var(--fg-2);flex:0 0 auto;white-space:nowrap;}
+  .disp-zoom-val{font-size:15px;color:var(--fg-2);flex:0 0 auto;min-width:48px;text-align:right;
+    font-variant-numeric:tabular-nums;}
+  .disp-zoom input[type=range]{flex:1;accent-color:#2f6df0;height:4px;}
+
+  /* ---- birthday editor ---- */
+  .bday-add{display:flex;gap:10px;align-items:stretch;}
+  .seg{display:flex;flex:0 0 auto;background:#26282d;border:1px solid rgba(255,255,255,.14);
+    border-radius:11px;overflow:hidden;}
+  .seg button{font-family:'Barlow','Noto Sans KR',sans-serif;font-size:16px;color:var(--fg-2);
+    background:transparent;border:none;padding:0 16px;cursor:pointer;}
+  .seg button.on{background:#2f6df0;color:#fff;}
+  .bday-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;margin-bottom:12px;}
+  .bday-list:empty{display:none;}
+  .bday-or{font-size:13px;color:var(--fg-3);text-align:center;margin:16px 0 12px;
+    position:relative;}
+  .bday-or::before,.bday-or::after{content:"";position:absolute;top:50%;width:38%;height:1px;
+    background:rgba(255,255,255,.1);}
+  .bday-or::before{left:0;} .bday-or::after{right:0;}
+  .bday-row{display:flex;align-items:center;gap:10px;background:#26282d;
+    border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:9px 12px;font-size:16px;color:#fff;}
+  .bday-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bday-row .dt{color:var(--fg-2);font-size:14px;white-space:nowrap;min-width:64px;text-align:right;
+    font-variant-numeric:tabular-nums;}
+  .bday-row .tag{font-size:12px;padding:2px 0;border-radius:8px;white-space:nowrap;
+    min-width:38px;text-align:center;flex:0 0 auto;}
+  .bday-row .tag.solar{background:rgba(120,160,255,.18);color:#a9c6ff;}
+  .bday-row .tag.lunar{background:rgba(200,166,255,.18);color:#d2b6ff;}
+  .bday-row .del{flex:0 0 auto;cursor:pointer;color:var(--fg-3);font-size:20px;line-height:1;
+    background:none;border:none;padding:2px 4px;}
+  .bday-row .del:hover{color:#ff6a5a;}
+  .bday-row.src{opacity:.92;}
+  .bday-row .src-tag{flex:0 0 auto;font-size:12px;color:var(--fg-3);
+    border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:1px 7px;}
+  .td-redirect{display:flex;align-items:stretch;gap:8px;}
+  .td-redirect code{flex:1;min-width:0;font-family:'Barlow','Noto Sans KR',monospace;font-size:14px;color:#cfe1ff;
+    background:#26282d;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:11px 13px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;}
+  .td-redirect .btn{padding:0 16px;font-size:15px;white-space:nowrap;}
+  .td-warn{margin-top:9px;font-size:13.5px;line-height:1.5;color:#ffd2a8;
+    background:rgba(224,140,40,.12);border:1px solid rgba(224,140,40,.3);border-radius:9px;padding:9px 12px;}
+</style>
+</head>
+<body>
+  <script src="config.js"></script>
+  <div id="stage">
+    <div id="board">
+      <div id="bg"></div>
+      <div class="scrim"></div>
+
+      <button class="loc-btn" id="locBtn" aria-label="설정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+
+      <div class="content">
+        <!-- clock + date -->
+        <div class="clock-wrap">
+          <div class="clock"><span data-clock>12:44</span><span class="sec" data-sec>21</span></div>
+          <div class="date" data-date>Sunday, June 7</div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- weather + todo -->
+        <div class="mid">
+          <div class="weather">
+            <div class="now">
+              <div class="temp"><span data-temp>22</span><span class="deg">°</span></div>
+              <div class="wi-big" data-icon="cloud"></div>
+            </div>
+            <div class="now-meta">
+              <div class="l">Feels like <span data-feels>21</span>°</div>
+              <div class="l">
+                <svg viewBox="0 0 12 16" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>
+                <span data-humidity>54</span>%
+              </div>
+              <div class="cond" data-cond>Cloudy</div>
+            </div>
+
+            <div class="forecast" id="forecast"></div>
+          </div>
+
+          <div class="todo" id="todo"></div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- calendar -->
+        <div class="cal">
+          <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint"><b>DAKBoard</b> · 가족 사진이 배경 슬라이드쇼로 순환합니다</div>
+
+  <!-- ===== Settings modal ===== -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <header>
+        <h2>설정</h2>
+        <button class="x" id="modalClose">&times;</button>
+      </header>
+      <div class="body settings">
+        <nav class="settings-nav" id="settingsNav">
+          <button class="nav-item active" data-panel="display"><span class="ni-ic">🖥️</span><span>화면</span></button>
+          <button class="nav-item" data-panel="weather"><span class="ni-ic">🌤️</span><span>날씨 · 위치</span></button>
+          <button class="nav-item" data-panel="todo"><span class="ni-ic">✅</span><span>할 일</span></button>
+          <button class="nav-item" data-panel="calendar"><span class="ni-ic">📅</span><span>캘린더</span></button>
+          <button class="nav-item" data-panel="birthday"><span class="ni-ic">🎂</span><span>생일 · 기념일</span></button>
+
+          <div class="nav-foot">
+            <div class="nav-ver">버전 <span id="appVer">—</span></div>
+            <div class="nav-upd" id="updStatus">확인 중…</div>
+            <button class="upd-btn" id="updBtn" style="display:none">지금 업데이트</button>
+          </div>
+        </nav>
+
+        <div class="settings-content" id="settingsContent">
+
+          <!-- ===== 화면 ===== -->
+          <section class="settings-panel active" data-panel="display">
+            <h3 class="panel-title">화면 표시</h3>
+            <div class="field-label">해상도</div>
+            <select id="dispRes" class="td-select" style="margin-top:0">
+              <option value="auto">자동 (화면에 맞춤)</option>
+              <option value="1080x1920">1080 × 1920 (세로 FHD)</option>
+              <option value="1200x1920">1200 × 1920 (세로)</option>
+              <option value="800x1280">800 × 1280 (세로)</option>
+              <option value="600x1024">600 × 1024 (세로)</option>
+              <option value="custom">사용자 지정…</option>
+            </select>
+            <div class="disp-custom" id="dispCustom">
+              <input id="dispW" class="td-input" type="number" inputmode="numeric" placeholder="가로 px" autocomplete="off">
+              <span class="disp-x">×</span>
+              <input id="dispH" class="td-input" type="number" inputmode="numeric" placeholder="세로 px" autocomplete="off">
+            </div>
+            <div class="field-label" style="margin-top:20px">콘텐츠 크기</div>
+            <div class="disp-zoom">
+              <input id="dispZoom" type="range" min="70" max="140" step="5" value="100">
+              <span id="dispZoomVal" class="disp-zoom-val">100%</span>
+            </div>
+            <div class="note">기본은 <b>자동</b>으로 어떤 화면에도 꽉 차게 맞춥니다. 특정 패널에 맞추려면 해상도를 직접 고르세요(그 비율로 표시). <b>콘텐츠 크기</b>는 글자·요소의 크기(배율)를 조절합니다 — 멀리서 보면 키우고, 더 많은 정보를 담으려면 줄이세요.</div>
+          </section>
+
+          <!-- ===== 날씨 · 위치 ===== -->
+          <section class="settings-panel" data-panel="weather">
+            <h3 class="panel-title">날씨 · 위치</h3>
+            <div class="field-label">현재 위치</div>
+            <div class="cur-loc">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <div><span id="curLocName">서울</span> <span class="sub" id="curLocSub"></span></div>
+            </div>
+            <div class="field-label">도시 검색</div>
+            <div class="search">
+              <input id="searchInput" type="text" placeholder="도시 이름을 입력하세요 (예: Seoul, 부산, Tokyo)" autocomplete="off">
+              <div class="results" id="results"></div>
+            </div>
+            <div class="note">날씨는 <b>기상청(KMA)</b> 모델 데이터입니다 — 전 지구 GDPS(10km)에 한반도 LDPS(1.5km) 고해상도 모델을 결합 (Open-Meteo 경유, API 키 불필요). 강수확률이 KMA에 없을 땐 보조 모델 값으로 채웁니다.</div>
+          </section>
+
+          <!-- ===== 할 일 ===== -->
+          <section class="settings-panel" data-panel="todo">
+            <h3 class="panel-title">할 일 · Google Sheets</h3>
+            <div class="td-status" id="todoStatus"><span class="dot off"></span><span id="todoStatusText">데모 데이터 표시 중</span></div>
+            <input id="sheetUrl" class="td-input" type="text" placeholder="구글 시트 공유 링크를 붙여넣으세요" autocomplete="off" spellcheck="false">
+            <div class="td-actions">
+              <button class="btn primary" id="sheetLoad">불러오기</button>
+            </div>
+            <div class="field-label" style="margin-top:20px">담당자 색상 순서 (쉼표로 구분)</div>
+            <input id="assigneeNames" class="td-input" type="text" placeholder="시윤, 하나, 공동" autocomplete="off">
+            <div class="note">할 일은 <b>구글 시트</b>에서 가져와 <b>읽기 전용</b>으로 표시합니다(편집은 모바일 구글 시트 앱에서). 첫 줄을 머리글로 두고 열 이름을 <code>할일 · 담당자 · 우선순위 · 완료 · 완료일</code> 로 만드세요(순서 무관, 일부 생략 가능).<br><br><b>연결 방법 (권장)</b> — 구글 시트에서 <b>파일 → 공유 → 웹에 게시</b> → 형식 <b>쉼표로 구분된 값(.csv)</b> 선택 → 게시 → 나온 링크(<code>…/pub?output=csv</code>)를 위에 붙여넣고 <b>불러오기</b>. (별도 키·로그인 불필요)<br><br>⚠️ 일반 편집 링크를 넣었을 때 <code>NetworkError</code>가 나면 시트가 완전 공개가 아니라는 뜻입니다 — 위의 “웹에 게시 → CSV” 방식을 쓰면 해결됩니다.<br><br>우선순위 칸이 <code>높음/⭐/p1</code> 이면 별로, 완료 칸이 <code>완료/done/y</code> 이면 완료 처리되어 아래로 내려가 흐려집니다. <b>완료일</b>(날짜)을 적으면 매주 일요일 자정에 지난 완료 항목이 자동 정리됩니다.</div>
+          </section>
+
+          <!-- ===== 캘린더 ===== -->
+          <section class="settings-panel" data-panel="calendar">
+            <h3 class="panel-title">캘린더 · Google Calendar</h3>
+            <div class="td-status" id="calStatus"><span class="dot off"></span><span id="calStatusText">데모 일정 표시 중</span></div>
+            <input id="calKey" class="td-input" type="text" placeholder="Google API 키" autocomplete="off" spellcheck="false">
+            <input id="calId" class="td-input" type="text" placeholder="캘린더 ID (예: example@gmail.com)" autocomplete="off" spellcheck="false" style="margin-top:10px">
+            <div class="td-actions">
+              <button class="btn primary" id="calLoad">불러오기</button>
+            </div>
+            <div class="note">일정은 <b>Google 캘린더</b>에서 가져와 표시하고, <b>한국 공휴일</b>은 같은 키로 자동으로 함께 불러와 <span style="color:#ff6a5a">빨간색</span>으로 표시합니다. 한 캘린더에 모아 쓰고 싶으면, 제목 앞에 <code>[이름]</code> 대괄호를 붙이면 담당자별 색으로 구분됩니다 — 예: <code>[시윤] 급여일</code>, <code>[하나] 생일</code>, <code>[공동] 차량 할부</code>. 화면에는 대괄호를 뗼 제목만 보입니다.<br><br><b>연결 방법</b> — 1) <b>Google Cloud Console</b>에서 프로젝트 생성 → <b>Calendar API 사용 설정</b> → <b>사용자 인증 정보 → API 키</b> 생성. 2) 휴대폰/웹 Google 캘린더에서 해당 캘린더 <b>설정 → 액세스 권한 → ‘공개 사용 설정’</b>. 3) 같은 화면의 <b>캘린더 통합 → 캘린더 ID</b> 를 복사. 4) 위에 API 키와 캘린더 ID를 넣고 <b>불러오기</b>. (OAuth·로그인 불필요)<br><br>⚠️ 공개로 설정해야 키만으로 읽힙니다. 가족 일정 공개가 부담되면 일정 전용 캘린더를 따로 만들어 공개하는 방법을 권장합니다.</div>
+
+            <div class="sec-divider"></div>
+
+            <div class="field-label">반복 일정 (규칙 · Google Sheets)</div>
+            <div class="td-status" id="recurStatus"><span class="dot off"></span><span id="recurStatusText">시트 미연결</span></div>
+            <input id="recurSheet" class="td-input" type="text" placeholder="구글 시트 공유(게시) CSV 링크" autocomplete="off" spellcheck="false">
+            <div class="td-actions">
+              <button class="btn primary" id="recurLoad">불러오기</button>
+            </div>
+            <div class="note">고정 날짜가 아닌 <b>규칙 반복</b>(예: 매월 마지막 평일=월급날)을 위한 시트입니다. 머리글을 <code>제목 · 규칙</code> 으로 만들고 규칙을 한국어로 적으면 매달 자동 계산됩니다. 제목에 <code>[이름]</code>을 붙이면 담당자 색으로 표시됩니다.<br><br><b>규칙 예시</b><br>• <code>매월 마지막 평일</code> (주말 제외 그 달 마지막 근무일 — 월급날)<br>• <code>매월 첫 평일</code> / <code>매월 말일</code><br>• <code>매월 25일</code> (없는 달은 말일로)<br>• <code>매월 마지막 금요일</code> / <code>매월 둘째 토요일</code><br>• <code>매주 월요일</code><br><br><b>예</b>: 제목 <code>[하나] 월급날</code>, 규칙 <code>매월 마지막 평일</code></div>
+          </section>
+
+          <!-- ===== 생일 · 기념일 ===== -->
+          <section class="settings-panel" data-panel="birthday">
+            <h3 class="panel-title">생일 · 기념일</h3>
+            <div class="td-status" id="bdayStatus"><span class="dot off"></span><span id="bdayStatusText">시트 미연결</span></div>
+            <input id="bdaySheet" class="td-input" type="text" placeholder="구글 시트 공유(게시) CSV 링크" autocomplete="off" spellcheck="false">
+            <div class="td-actions">
+              <button class="btn primary" id="bdaySheetLoad">불러오기</button>
+            </div>
+            <div id="bdayList" class="bday-list"></div>
+            <div class="note">생일·기념일을 <b>구글 시트</b>에서 읽어와 캘린더에 매년 <span style="color:#caa6ff">🎂</span>(생일) · <span style="color:#caa6ff">🎉</span>(기념일) 로 표시합니다. 편집은 모바일 구글 시트 앱에서 하면 30분마다 자동 반영됩니다.<br><br><b>시트 형식</b> — 첫 줄을 머리글 <code>유형 · 이름 · 날짜 · 양력/음력</code> 로 만드세요. 예: <code>생일, 시윤, 1996.03.13, 양력</code> / <code>기념일, ❤️, 2014.06.06, 양력</code>. 연도를 적으면 기념일이 <b>N주년</b>으로 표시되고, <b>음력</b>이면 매년 양력 날짜가 자동 계산됩니다(한국 음력, 1900~2100년).<br><br><b>연결</b> — 구글 시트에서 <b>파일 → 공유 → 웹에 게시 → CSV</b> 링크를 위에 붙여넣고 불러오기. (별도 키·로그인 불필요)</div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ---------------- Weather icons (inline SVG) ---------------- */
+  const ICONS = {
+    cloud:`<svg viewBox="0 0 64 50" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 41h26a10 10 0 0 0 1.6-19.9A14 14 0 0 0 20.5 17 9.5 9.5 0 0 0 20 41z"/></svg>`,
+    sun:`<svg viewBox="0 0 64 50" fill="#fff"><g stroke="#fff" stroke-width="3" stroke-linecap="round">
+      <line x1="32" y1="6" x2="32" y2="13"/><line x1="32" y1="37" x2="32" y2="44"/>
+      <line x1="11" y1="25" x2="18" y2="25"/><line x1="46" y1="25" x2="53" y2="25"/>
+      <line x1="17" y1="10" x2="22" y2="15"/><line x1="42" y1="35" x2="47" y2="40"/>
+      <line x1="47" y1="10" x2="42" y2="15"/><line x1="22" y1="35" x2="17" y2="40"/></g>
+      <circle cx="32" cy="25" r="10"/></svg>`,
+    partly:`<svg viewBox="0 0 64 50" fill="none">
+      <g stroke="#fff" stroke-width="2.6" stroke-linecap="round"><line x1="24" y1="6" x2="24" y2="11"/>
+      <line x1="9" y1="20" x2="14" y2="20"/><line x1="13" y1="10" x2="16.5" y2="13.5"/>
+      <line x1="35" y1="10" x2="31.5" y2="13.5"/></g>
+      <circle cx="24" cy="20" r="7.5" fill="#fff"/>
+      <path d="M24 44h22a8.5 8.5 0 0 0 1.2-16.9A11.5 11.5 0 0 0 25 24 8 8 0 0 0 24 44z" fill="#fff"/></svg>`,
+    rain:`<svg viewBox="0 0 64 50" fill="none">
+      <path d="M19 34h26a9.5 9.5 0 0 0 1.4-18.9A13 13 0 0 0 20 11 9 9 0 0 0 19 34z" fill="#fff"/>
+      <g stroke="#fff" stroke-width="2.8" stroke-linecap="round">
+      <line x1="22" y1="40" x2="19" y2="47"/><line x1="32" y1="40" x2="29" y2="47"/><line x1="42" y1="40" x2="39" y2="47"/></g></svg>`,
+    snow:`<svg viewBox="0 0 64 50" fill="none">
+      <path d="M19 32h26a9.5 9.5 0 0 0 1.4-18.9A13 13 0 0 0 20 9 9 9 0 0 0 19 32z" fill="#fff"/>
+      <g fill="#fff"><circle cx="22" cy="42" r="2.4"/><circle cx="32" cy="45" r="2.4"/><circle cx="42" cy="42" r="2.4"/></g></svg>`,
+    storm:`<svg viewBox="0 0 64 50" fill="none">
+      <path d="M19 30h26a9.5 9.5 0 0 0 1.4-18.9A13 13 0 0 0 20 7 9 9 0 0 0 19 30z" fill="#fff"/>
+      <path d="M33 32l-9 11h7l-3 8 10-12h-7z" fill="#ffd24a"/></svg>`,
+    fog:`<svg viewBox="0 0 64 50" fill="none">
+      <path d="M19 26h26a9.5 9.5 0 0 0 1.4-18.9A13 13 0 0 0 20 3 9 9 0 0 0 19 26z" fill="#fff"/>
+      <g stroke="#fff" stroke-width="2.6" stroke-linecap="round"><line x1="16" y1="35" x2="48" y2="35"/><line x1="20" y1="43" x2="44" y2="43"/></g></svg>`
+  };
+  function setIcons(){
+    document.querySelectorAll('[data-icon]').forEach(e=>{e.innerHTML=ICONS[e.dataset.icon]||'';});
+  }
+
+  /* ---------------- Weather code mapping (WMO) ---------------- */
+  function mapCode(c){
+    if(c===0) return {ic:'sun',label:'Clear'};
+    if(c===1) return {ic:'sun',label:'Mostly Clear'};
+    if(c===2) return {ic:'partly',label:'Partly Cloudy'};
+    if(c===3) return {ic:'cloud',label:'Cloudy'};
+    if(c===45||c===48) return {ic:'fog',label:'Fog'};
+    if(c>=51&&c<=57) return {ic:'rain',label:'Drizzle'};
+    if(c>=61&&c<=65) return {ic:'rain',label:'Rain'};
+    if(c===66||c===67) return {ic:'rain',label:'Freezing Rain'};
+    if(c>=71&&c<=77) return {ic:'snow',label:'Snow'};
+    if(c>=80&&c<=82) return {ic:'rain',label:'Showers'};
+    if(c===85||c===86) return {ic:'snow',label:'Snow Showers'};
+    if(c>=95) return {ic:'storm',label:'Thunderstorm'};
+    return {ic:'cloud',label:'—'};
+  }
+
+  /* ---------------- Fallback (offline) data ---------------- */
+  const FALLBACK={
+    cur:{temp:22,feels:21,humidity:54,code:3},
+    days:[
+      {code:61,pop:40,mm:0.07,hi:24,lo:18},
+      {code:2,pop:0,mm:0,hi:24,lo:17},
+      {code:0,pop:0,mm:0,hi:26,lo:16},
+      {code:61,pop:49,mm:0.15,hi:23,lo:16},
+      {code:63,pop:41,mm:1.93,hi:24,lo:16},
+    ]
+  };
+  const drop=`<svg viewBox="0 0 12 16" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>`;
+  const DOW_S=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function renderWeather(cur,days){
+    document.querySelector('[data-temp]').textContent=Math.round(cur.temp);
+    document.querySelector('[data-feels]').textContent=Math.round(cur.feels);
+    document.querySelector('[data-humidity]').textContent=Math.round(cur.humidity);
+    const cm=mapCode(cur.code);
+    document.querySelector('[data-cond]').textContent=cm.label;
+    const big=document.querySelector('[data-icon]');big.dataset.icon=cm.ic;
+
+    document.getElementById('forecast').innerHTML=days.slice(0,5).map((f,i)=>{
+      const m=mapCode(f.code);
+      const day=i===0?'Today':DOW_S[f.dow];
+      const mm=(f.mm>=1?f.mm.toFixed(2):f.mm>0?f.mm.toFixed(2):'0')+'mm';
+      return `<div class="fc">
+        <div class="day">${day}</div>
+        <div class="ic" data-icon="${m.ic}"></div>
+        <div class="pop">${drop}${Math.round(f.pop)}%</div>
+        <div class="mm">${mm}</div>
+        <div class="hl"><span>${Math.round(f.hi)}</span><span class="lo">${Math.round(f.lo)}</span></div>
+      </div>`;
+    }).join('');
+    setIcons();
+  }
+
+  function setDot(state){ // 'live' | 'off' | 'err'
+    const d=document.getElementById('locDot');
+    if(d) d.className='dot'+(state==='off'?' off':state==='err'?' err':'');
+  }
+
+  async function fetchOM(base,model){
+    const u=`https://api.open-meteo.com/v1/forecast?${base}`
+      +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code`
+      +`&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max`
+      +`&timezone=auto&forecast_days=7`+(model?`&models=${model}`:'');
+    const r=await fetch(u);
+    if(!r.ok) throw new Error('http '+r.status);
+    const j=await r.json();
+    if(!j.current||j.current.temperature_2m==null) return null; // model feed empty
+    return j;
+  }
+  async function fetchWeather(lat,lon){
+    const base=`latitude=${lat}&longitude=${lon}`;
+    try{
+      // 기상청(KMA) 모델 우선, 비어 있으면 지역 최적 모델(best_match)로 자동 대체
+      let j=null,src='KMA';
+      try{ j=await fetchOM(base,'kma_seamless'); }catch(_){ j=null; }
+      if(!j){ j=await fetchOM(base,''); src='auto'; }
+      if(!j) throw new Error('empty');
+      // 시계를 이 위치의 시간대에 맞춤 (Open-Meteo가 utc_offset_seconds 제공)
+      clockOffset=(typeof j.utc_offset_seconds==='number')?j.utc_offset_seconds:null;
+      const tzEl=document.getElementById('clockTz'); if(tzEl) tzEl.textContent=j.timezone_abbreviation||'';
+      const c=j.current;
+      const cur={
+        temp:c.temperature_2m,
+        feels:(c.apparent_temperature!=null?c.apparent_temperature:c.temperature_2m),
+        humidity:(c.relative_humidity_2m!=null?c.relative_humidity_2m:0),
+        code:c.weather_code
+      };
+      const dp=j.daily.precipitation_probability_max;
+      const days=j.daily.time.map((t,i)=>({
+        dow:new Date(t+'T00:00').getDay(),
+        code:j.daily.weather_code[i],
+        pop:(dp&&dp[i]!=null?dp[i]:0),
+        mm:j.daily.precipitation_sum[i]!=null?j.daily.precipitation_sum[i]:0,
+        hi:j.daily.temperature_2m_max[i],
+        lo:j.daily.temperature_2m_min[i]
+      }));
+      renderWeather(cur,days);
+      setDot('live');
+    }catch(e){
+      const days=FALLBACK.days.map((d,i)=>({...d,dow:(new Date().getDay()+i)%7}));
+      renderWeather(FALLBACK.cur,days);
+      setDot('err');
+    }
+  }
+
+  /* ---------------- Location (persisted) ---------------- */
+  const DEFAULT_LOC={name:'서울',sub:'대한민국',lat:37.5665,lon:126.978};
+  function getLoc(){
+    try{return JSON.parse(localStorage.getItem('dak.loc'))||DEFAULT_LOC;}catch(e){return DEFAULT_LOC;}
+  }
+  function setLoc(l){
+    localStorage.setItem('dak.loc',JSON.stringify(l));
+    applyLoc(l);
+  }
+  function applyLoc(l){
+    const ln=document.getElementById('locName');if(ln)ln.textContent=l.name;
+    document.getElementById('curLocName').textContent=l.name;
+    document.getElementById('curLocSub').textContent=l.sub||'';
+    setDot('off');
+    fetchWeather(l.lat,l.lon);
+  }
+
+  /* ---------------- Geocoding search ---------------- */
+  let searchTimer=null;
+  async function doSearch(q){
+    const box=document.getElementById('results');
+    if(!q.trim()){box.innerHTML='';return;}
+    try{
+      const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=ko&format=json`;
+      const r=await fetch(u);const j=await r.json();
+      const list=j.results||[];
+      if(!list.length){box.innerHTML='<div class="empty">검색 결과가 없습니다</div>';return;}
+      box.innerHTML=list.map((c,i)=>{
+        const sub=[c.admin1,c.country].filter(Boolean).join(', ');
+        return `<button class="res" data-i="${i}"><span>${c.name}</span><span class="sub">${sub}</span></button>`;
+      }).join('');
+      box.querySelectorAll('.res').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const c=list[+btn.dataset.i];
+          setLoc({name:c.name,sub:[c.admin1,c.country].filter(Boolean).join(', '),lat:c.latitude,lon:c.longitude});
+          closeModal();
+        });
+      });
+    }catch(e){
+      box.innerHTML='<div class="empty">검색을 사용할 수 없습니다 (오프라인)</div>';
+    }
+  }
+
+  /* ---------------- Modal wiring ---------------- */
+  const modal=document.getElementById('modal');
+  function openModal(){modal.classList.add('open');}
+  function closeModal(){modal.classList.remove('open');
+    document.getElementById('searchInput').value='';document.getElementById('results').innerHTML='';}
+  document.getElementById('locBtn').addEventListener('click',openModal);
+  document.getElementById('modalClose').addEventListener('click',closeModal);
+  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+  /* kiosk: block drag / text-selection everywhere except the settings modal */
+  document.addEventListener('dragstart',e=>{ if(!e.target.closest('.modal')) e.preventDefault(); });
+  document.addEventListener('selectstart',e=>{ if(!e.target.closest('.modal')) e.preventDefault(); });
+  document.addEventListener('contextmenu',e=>{ if(!e.target.closest('.modal')) e.preventDefault(); });
+
+  /* settings category switching */
+  (function(){
+    const nav=document.getElementById('settingsNav');
+    const content=document.getElementById('settingsContent');
+    if(!nav||!content) return;
+    nav.addEventListener('click',e=>{
+      const btn=e.target.closest('.nav-item'); if(!btn) return;
+      const key=btn.dataset.panel;
+      nav.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b===btn));
+      content.querySelectorAll('.settings-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===key));
+      content.scrollTop=0;
+      if(key==='weather'){ const s=document.getElementById('searchInput'); if(s) s.focus(); }
+    });
+  })();
+
+  /* ---------------- Version + update check ---------------- */
+  const APP_VERSION='2026.06.08.12';
+  (function(){
+    const verEl=document.getElementById('appVer');
+    const statusEl=document.getElementById('updStatus');
+    const btn=document.getElementById('updBtn');
+    if(verEl) verEl.textContent=APP_VERSION;
+    let latest=null;
+    function setStatus(text,cls){ if(statusEl){ statusEl.textContent=text; statusEl.className='nav-upd '+(cls||''); } }
+    async function check(){
+      try{
+        const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});
+        if(!r.ok) throw new Error('no manifest');
+        const j=await r.json();
+        latest=(j.version||'').toString().trim();
+        if(latest && latest!==APP_VERSION){
+          setStatus('새 버전 '+latest+' 있음','new');
+          if(btn) btn.style.display='block';
+        }else{
+          setStatus('최신 버전입니다','ok');
+          if(btn) btn.style.display='none';
+        }
+      }catch(e){
+        // no version.json yet (older package) → treat as up to date, silent
+        setStatus('버전 확인 불가','off');
+        if(btn) btn.style.display='none';
+      }
+    }
+    if(btn) btn.addEventListener('click',()=>{
+      // hard reload, cache-busted, to pull the new files
+      const u=location.pathname+'?v='+(latest||Date.now());
+      location.replace(u);
+    });
+    check();
+    setInterval(check, 30*60*1000);          // re-check every 30 min
+    // also re-check whenever the settings panel is opened
+    const lb=document.getElementById('locBtn');
+    if(lb) lb.addEventListener('click',check);
+  })();
+  document.getElementById('searchInput').addEventListener('input',e=>{
+    clearTimeout(searchTimer);const v=e.target.value;
+    searchTimer=setTimeout(()=>doSearch(v),320);
+  });
+
+  /* ---------------- Calendar ----------------
+     Calendar grid rendering + Google Calendar / 공휴일 fetch live in calendar.js */
+
+  /* ---------------- Live clock ---------------- */
+  const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONF=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  // 시계 시간대: null = 기기 시간 / 숫자 = 날씨 위치의 UTC offset(초)
+  let clockOffset=null;
+  function tick(){
+    let h,m,s,dow,mon,date;
+    if(clockOffset!=null){
+      // 위치 시간대: UTC + offset 으로 그 지역의 벽시계 시각을 계산
+      const d=new Date(Date.now()+clockOffset*1000);
+      h=d.getUTCHours();
+      m=String(d.getUTCMinutes()).padStart(2,'0');
+      s=String(d.getUTCSeconds()).padStart(2,'0');
+      dow=d.getUTCDay(); mon=d.getUTCMonth(); date=d.getUTCDate();
+    }else{
+      const d=new Date();
+      h=d.getHours();
+      m=String(d.getMinutes()).padStart(2,'0');
+      s=String(d.getSeconds()).padStart(2,'0');
+      dow=d.getDay(); mon=d.getMonth(); date=d.getDate();
+    }
+    document.querySelector('[data-clock]').textContent=`${h}:${m}`;
+    document.querySelector('[data-sec]').textContent=s;
+    document.querySelector('[data-date]').textContent=`${DOW[dow]}, ${MONF[mon]} ${date}`;
+  }
+
+  /* ---------------- Fit to viewport ---------------- */
+  function getDisplay(){
+    try{ const v=JSON.parse(localStorage.getItem('dak.display')||'{}'); return v&&typeof v==='object'?v:{}; }
+    catch(_){ return {}; }
+  }
+  function fit(){
+    const d=getDisplay();
+    const zoom=(d.zoom&&d.zoom>0)?d.zoom:1;
+    const baseW=Math.round(936/zoom);
+    const board=document.getElementById('board');
+    const vw=window.innerWidth, vh=window.innerHeight;
+    document.documentElement.style.setProperty('--w', baseW+'px');
+
+    // Manual resolution → render that canvas, scaled to FIT the actual window (contain, centered)
+    if(d.mode==='manual' && d.w>0 && d.h>0){
+      const tw=d.w, th=d.h;
+      if(th>=tw){
+        const baseH=Math.round(baseW*th/tw);
+        document.documentElement.style.setProperty('--h', baseH+'px');
+        const s=Math.min(vw/baseW, vh/baseH);
+        board.style.transform=`translate(${Math.round((vw-baseW*s)/2)}px,${Math.round((vh-baseH*s)/2)}px) scale(${s})`;
+      }else{
+        const baseH=Math.round(baseW*th/tw);
+        document.documentElement.style.setProperty('--h', baseH+'px');
+        const s=Math.min(vw/baseW, vh/baseH);
+        board.style.transform=`translate(${Math.round((vw-baseW*s)/2)}px,${Math.round((vh-baseH*s)/2)}px) scale(${s})`;
+      }
+      return;
+    }
+
+    // Auto → fill the actual screen edge-to-edge
+    if(vh>=vw){
+      const baseH=Math.round(baseW*vh/vw);
+      document.documentElement.style.setProperty('--h', baseH+'px');
+      board.style.transform=`scale(${vw/baseW})`;
+    }else{
+      document.documentElement.style.setProperty('--h','1566px');
+      const s=Math.min(vw/baseW, vh/1566);
+      board.style.transform=`translate(${Math.round((vw-baseW*s)/2)}px,${Math.round((vh-1566*s)/2)}px) scale(${s})`;
+    }
+  }
+
+  /* ---------------- Background photo slideshow ---------------- */
+  const PHOTOS=[
+    'photos/IMG_8167.JPG','photos/IMG_8176.JPG','photos/IMG_0051.JPG',
+    'photos/IMG_7985.JPG','photos/IMG_8072.JPG','photos/IMG_8073.JPG',
+    'photos/IMG_8088.JPG','photos/IMG_8126.JPG','photos/IMG_8129.JPG',
+    'photos/IMG_8146.JPG','photos/IMG_8165.JPG'
+  ];
+  function startSlideshow(){
+    const bg=document.getElementById('bg'); if(!bg) return;
+    const a=document.createElement('img'), b=document.createElement('img');
+    bg.appendChild(a); bg.appendChild(b);
+    let cur=0, front=a, back=b;
+    a.src=PHOTOS[0]; a.classList.add('on');
+    function preload(src){ const i=new Image(); i.src=src; }
+    preload(PHOTOS[1]);
+    function next(){
+      cur=(cur+1)%PHOTOS.length;
+      back.onload=()=>{
+        back.classList.add('on'); front.classList.remove('on');
+        const t=front; front=back; back=t;
+        preload(PHOTOS[(cur+1)%PHOTOS.length]);
+      };
+      back.src=PHOTOS[cur];
+    }
+    setInterval(next, 12000); // 12s per photo
+  }
+
+  setIcons();tick();startSlideshow();
+  applyLoc(getLoc());
+  setInterval(tick,1000);
+  setInterval(()=>{const l=getLoc();fetchWeather(l.lat,l.lon);},15*60*1000);
+
+  /* ---------------- Display (resolution + zoom) settings ---------------- */
+  const DISP_PRESETS={
+    'auto':null,
+    '1080x1920':[1080,1920], '1200x1920':[1200,1920],
+    '800x1280':[800,1280], '600x1024':[600,1024]
+  };
+  function saveDisplay(d){ localStorage.setItem('dak.display', JSON.stringify(d)); }
+  function wireDisplay(){
+    const sel=document.getElementById('dispRes');
+    const wIn=document.getElementById('dispW');
+    const hIn=document.getElementById('dispH');
+    const custom=document.getElementById('dispCustom');
+    const zoom=document.getElementById('dispZoom');
+    const zoomVal=document.getElementById('dispZoomVal');
+    if(!sel) return;
+    const d=getDisplay();
+    // seed from config.js if empty
+    if(!localStorage.getItem('dak.display') && window.DAK_CONFIG && window.DAK_CONFIG.display){
+      Object.assign(d, window.DAK_CONFIG.display); saveDisplay(d);
+    }
+    // resolution select value
+    let resVal='auto';
+    if(d.mode==='manual' && d.w && d.h){
+      const key=d.w+'x'+d.h;
+      resVal=DISP_PRESETS[key]?key:'custom';
+    }
+    sel.value=resVal;
+    if(wIn) wIn.value=d.w||'';
+    if(hIn) hIn.value=d.h||'';
+    if(custom) custom.style.display=(resVal==='custom')?'flex':'none';
+    if(zoom){ zoom.value=Math.round((d.zoom||1)*100); if(zoomVal) zoomVal.textContent=zoom.value+'%'; }
+
+    function commit(){
+      const v=sel.value;
+      const out={zoom:(+zoom.value||100)/100};
+      if(v==='auto'){ out.mode='auto'; }
+      else if(v==='custom'){ out.mode='manual'; out.w=+wIn.value||0; out.h=+hIn.value||0; }
+      else { out.mode='manual'; out.w=DISP_PRESETS[v][0]; out.h=DISP_PRESETS[v][1]; }
+      saveDisplay(out); fit();
+    }
+    sel.addEventListener('change',()=>{
+      if(custom) custom.style.display=(sel.value==='custom')?'flex':'none';
+      commit();
+    });
+    if(wIn) wIn.addEventListener('input',commit);
+    if(hIn) hIn.addEventListener('input',commit);
+    if(zoom) zoom.addEventListener('input',()=>{ if(zoomVal) zoomVal.textContent=zoom.value+'%'; commit(); });
+  }
+  wireDisplay();
+
+  fit();window.addEventListener('resize',fit);
+
+  // fade hint
+  setTimeout(()=>{const h=document.getElementById('hint');if(h)h.style.opacity='0';},6000);
+  </script>
+  <script src="todo.js"></script>
+  <script src="calendar.js"></script>
+  <script src="birthdays.js"></script>
+  <script src="recurring.js"></script>
+</body>
+</html>

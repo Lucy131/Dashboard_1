@@ -1,0 +1,9 @@
+# 개인 설정 파일은 OTA 업데이트(git pull)로 덮어쓰지 않습니다.
+config.js
+
+# GitHub 토큰 — 절대 저장소에 올리지 않음
+github-token.txt
+
+# 잡다한 파일
+.DS_Store
+*.log
