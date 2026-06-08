@@ -30,7 +30,7 @@ After=network.target
 [Service]
 User=$USER_NAME
 WorkingDirectory=$APPDIR
-ExecStart=/usr/bin/python3 -m http.server 8000
+ExecStart=/usr/bin/python3 $APPDIR/server.py 8000
 Restart=always
 
 [Install]

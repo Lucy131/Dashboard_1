@@ -6,7 +6,7 @@ After=network.target
 # 아래 User / WorkingDirectory 를 실제 사용자명·경로에 맞게 수정하세요
 User=pi
 WorkingDirectory=/home/pi/DAKBoard_app
-ExecStart=/usr/bin/python3 -m http.server 8000
+ExecStart=/usr/bin/python3 /home/pi/DAKBoard_app/server.py 8000
 Restart=always
 
 [Install]

@@ -14,7 +14,7 @@
     --fg:#ffffff;
     --fg-2:rgba(255,255,255,.78);
     --fg-3:rgba(255,255,255,.55);
-    --rule:rgba(255,255,255,.42);
+    --rule:rgba(255,255,255,.6);
     --grid:rgba(255,255,255,.16);
     --ev-blue:#bfe1f6;
     --ev-blue-ink:#13334a;
@@ -43,7 +43,7 @@
   #bg{position:absolute;inset:0;overflow:hidden;background:#15171c;}
   #bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
     opacity:0;transition:opacity 1.6s ease-in-out;transform:scale(1.06);
-    filter:blur(2px) brightness(.66) saturate(.95);}
+    filter:blur(var(--bg-blur,2px)) brightness(var(--bg-bright,.66)) saturate(.95);}
   #bg img.on{opacity:1;}
   .scrim{position:absolute;inset:0;pointer-events:none;
     background:
@@ -60,17 +60,19 @@
   /* clock */
   .clock-wrap{text-align:center;padding-top:34px;}
   .clock{font-weight:300;font-size:172px;line-height:.92;letter-spacing:-2px;
+    position:relative;
     display:inline-flex;align-items:flex-start;justify-content:center;
     text-shadow:0 2px 18px rgba(0,0,0,.45);}
-  .clock .sec{font-size:54px;font-weight:300;margin-top:14px;margin-left:6px;color:var(--fg-2);}
+  .clock .sec{position:absolute;left:100%;top:14px;font-size:54px;font-weight:300;margin-left:6px;color:var(--fg-2);}
   .date{font-weight:400;font-size:46px;margin-top:6px;letter-spacing:.3px;
     text-shadow:0 2px 14px rgba(0,0,0,.45);}
 
-  .rule{height:0;border-top:1.5px solid var(--rule);margin:22px 0;}
+  .rule{height:0;border-top:2px solid var(--rule);margin:22px 0;
+    box-shadow:0 1px 4px rgba(0,0,0,.45);}
 
   /* ---- middle : weather + todo ---- */
-  .mid{display:flex;gap:30px;align-items:flex-start;}
-  .weather{flex:1.15;min-width:0;}
+  .mid{display:flex;gap:0;align-items:stretch;}
+  .weather{flex:0 0 auto;min-width:0;}
   .now{display:flex;align-items:flex-start;gap:14px;}
   .now .temp{font-weight:300;font-size:62px;line-height:1;position:relative;}
   .now .temp .deg{position:absolute;top:4px;right:-16px;font-size:24px;}
@@ -80,8 +82,8 @@
   .now-meta .l svg{width:17px;height:22px;opacity:.9;}
   .cond{font-size:22px;color:var(--fg);margin-top:2px;}
 
-  .forecast{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:20px;}
-  .fc{display:flex;flex-direction:column;align-items:center;gap:7px;}
+  .forecast{display:grid;grid-template-columns:repeat(5,auto);gap:26px;margin-top:20px;justify-content:start;}
+  .fc{display:flex;flex-direction:column;align-items:flex-start;gap:7px;}
   .fc .day{font-size:21px;color:var(--fg);}
   .fc .ic{width:46px;height:40px;color:#fff;}
   .fc .pop{font-size:18px;color:var(--fg-2);display:flex;align-items:center;gap:4px;}
@@ -91,13 +93,16 @@
   .fc .hl .lo{color:var(--fg-3);}
 
   /* todo */
-  .todo{flex:1;min-width:0;padding-top:2px;display:flex;flex-direction:column;gap:13px;overflow:hidden;}
+  .todo{flex:1;min-width:0;padding-top:2px;display:flex;flex-direction:column;gap:13px;overflow:hidden;
+    border-left:2px solid var(--rule);margin-left:30px;padding-left:30px;}
   .todo .item{display:flex;align-items:flex-start;gap:11px;font-size:22px;color:var(--fg);
     line-height:1.22;transition:opacity .3s;}
   .todo .item.done{opacity:.42;}
-  .todo .cb{width:23px;height:23px;border:2px solid var(--fg-2);border-radius:6px;flex:0 0 auto;
-    margin-top:2px;display:flex;align-items:center;justify-content:center;color:transparent;}
-  .todo .item.done .cb{background:rgba(255,255,255,.88);border-color:rgba(255,255,255,.88);color:#1b1b1d;}
+  .todo .cb{width:23px;height:23px;flex:0 0 auto;
+    margin-top:2px;display:flex;align-items:center;justify-content:center;color:#fff;}
+  .todo .cb .dot{width:7px;height:7px;border-radius:50%;background:var(--fg-2);
+    box-shadow:0 1px 3px rgba(0,0,0,.5);}
+  .todo .item.done .cb{color:#fff;}
   .todo .cb svg{width:15px;height:15px;}
   .todo .star{color:#ffcf3f;flex:0 0 auto;margin-top:3px;line-height:0;}
   .todo .star svg{width:18px;height:18px;}
@@ -174,7 +179,14 @@
     background:transparent;border:none;border-radius:10px;padding:11px 12px;line-height:1.2;}
   .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
   .nav-item.active{background:rgba(47,109,240,.18);color:#fff;}
-  .nav-item .ni-ic{font-size:18px;flex:0 0 auto;width:22px;text-align:center;}
+  .nav-item .ni-ic{font-size:18px;flex:0 0 auto;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;}
+  .nav-item .ni-ic svg{width:21px;height:21px;}
+  .ver-refresh{background:none;border:none;cursor:pointer;color:var(--fg-3);padding:2px;margin-left:4px;
+    vertical-align:-4px;border-radius:6px;}
+  .ver-refresh:hover{color:#fff;background:rgba(255,255,255,.08);}
+  .ver-refresh svg{width:15px;height:15px;display:block;}
+  .ver-refresh.spin svg{animation:verspin .8s linear infinite;}
+  @keyframes verspin{to{transform:rotate(360deg);}}
   .settings-content{flex:1;min-width:0;overflow-y:auto;padding:22px 26px 26px;}
   .settings-panel{display:none;}
   .settings-panel.active{display:block;}
@@ -191,6 +203,7 @@
   .upd-btn{font-family:'Barlow','Noto Sans KR',sans-serif;font-size:14px;font-weight:600;cursor:pointer;
     background:#2f6df0;color:#fff;border:none;border-radius:9px;padding:9px 12px;margin-top:2px;}
   .upd-btn:hover{background:#2a61d6;}
+  #bgReset{white-space:nowrap;}
   .field-label{font-size:14px;color:var(--fg-3);text-transform:uppercase;
     letter-spacing:.7px;font-weight:600;margin-bottom:9px;}
   .cur-loc{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:22px;
@@ -312,7 +325,7 @@
             <div class="now-meta">
               <div class="l">Feels like <span data-feels>21</span>°</div>
               <div class="l">
-                <svg viewBox="0 0 12 16" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>
+                <svg viewBox="0 0 12 18" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>
                 <span data-humidity>54</span>%
               </div>
               <div class="cond" data-cond>Cloudy</div>
@@ -346,14 +359,16 @@
       </header>
       <div class="body settings">
         <nav class="settings-nav" id="settingsNav">
-          <button class="nav-item active" data-panel="display"><span class="ni-ic">🖥️</span><span>화면</span></button>
-          <button class="nav-item" data-panel="weather"><span class="ni-ic">🌤️</span><span>날씨 · 위치</span></button>
-          <button class="nav-item" data-panel="todo"><span class="ni-ic">✅</span><span>할 일</span></button>
-          <button class="nav-item" data-panel="calendar"><span class="ni-ic">📅</span><span>캘린더</span></button>
-          <button class="nav-item" data-panel="birthday"><span class="ni-ic">🎂</span><span>생일 · 기념일</span></button>
+          <button class="nav-item active" data-panel="display"><span class="ni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span>화면</span></button>
+          <button class="nav-item" data-panel="weather"><span class="ni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 13v1.5M1.5 8h1.6M13 8h1.5M3.7 3.7l1.1 1.1M11.2 11.2l1.1 1.1M12.3 3.7l-1.1 1.1"/><path d="M17.5 20H9a4 4 0 0 1 .4-8 5 5 0 0 1 9.5 1.2A3.5 3.5 0 0 1 17.5 20z"/></svg></span><span>날씨 · 위치</span></button>
+          <button class="nav-item" data-panel="todo"><span class="ni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg></span><span>할 일</span></button>
+          <button class="nav-item" data-panel="calendar"><span class="ni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg></span><span>캘린더</span></button>
+          <button class="nav-item" data-panel="birthday"><span class="ni-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 16c1.5 0 1.5 1.2 3 1.2S8.5 16 10 16s1.5 1.2 3 1.2S14.5 16 16 16s1.5 1.2 3 1.2"/><path d="M12 8.5V5M12 3.2a1 1 0 0 1 1 1c0 .6-.4 1-1 1.3-.6-.3-1-.7-1-1.3a1 1 0 0 1 1-1z"/></svg></span><span>생일 · 기념일</span></button>
 
           <div class="nav-foot">
-            <div class="nav-ver">버전 <span id="appVer">—</span></div>
+            <div class="nav-ver">버전 <span id="appVer">—</span>
+              <button class="ver-refresh" id="updCheck" title="업데이트 확인" aria-label="업데이트 확인"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v5h-5"/></svg></button>
+            </div>
             <div class="nav-upd" id="updStatus">확인 중…</div>
             <button class="upd-btn" id="updBtn" style="display:none">지금 업데이트</button>
           </div>
@@ -384,6 +399,22 @@
               <span id="dispZoomVal" class="disp-zoom-val">100%</span>
             </div>
             <div class="note">기본은 <b>자동</b>으로 어떤 화면에도 꽉 차게 맞춥니다. 특정 패널에 맞추려면 해상도를 직접 고르세요(그 비율로 표시). <b>콘텐츠 크기</b>는 글자·요소의 크기(배율)를 조절합니다 — 멀리서 보면 키우고, 더 많은 정보를 담으려면 줄이세요.</div>
+
+            <div class="sec-divider"></div>
+            <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">배경 사진<button class="btn ghost" id="bgReset" style="font-size:13px;padding:5px 12px;flex:0 0 auto;">기본값으로</button></div>
+            <div class="disp-zoom"><span class="disp-zoom-label">흐림(블러)</span>
+              <input id="bgBlur" type="range" min="0" max="10" step="0.5" value="2">
+              <span id="bgBlurVal" class="disp-zoom-val">2px</span>
+            </div>
+            <div class="disp-zoom"><span class="disp-zoom-label">어둡기</span>
+              <input id="bgDark" type="range" min="0" max="80" step="2" value="34">
+              <span id="bgDarkVal" class="disp-zoom-val">34%</span>
+            </div>
+            <div class="disp-zoom"><span class="disp-zoom-label">전환 간격</span>
+              <input id="bgSec" type="range" min="4" max="120" step="2" value="12">
+              <span id="bgSecVal" class="disp-zoom-val">12초</span>
+            </div>
+            <div class="note">배경 슬라이드쇼의 <b>흐림·어둡기·전환 간격</b>을 조절합니다. 글자가 잘 안 보이면 흐림/어둡기를 높이세요. <b>기본값으로</b> 버튼으로 언제든 처음 설정(흐림 2px · 어둡기 34% · 12초)으로 되돌릴 수 있습니다.</div>
           </section>
 
           <!-- ===== 날씨 · 위치 ===== -->
@@ -517,7 +548,7 @@
       {code:63,pop:41,mm:1.93,hi:24,lo:16},
     ]
   };
-  const drop=`<svg viewBox="0 0 12 16" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>`;
+  const drop=`<svg viewBox="0 0 12 18" fill="currentColor"><path d="M6 0C6 0 0 7 0 11a6 6 0 0 0 12 0C12 7 6 0 6 0z"/></svg>`;
   const DOW_S=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   function renderWeather(cur,days){
@@ -669,7 +700,7 @@
   })();
 
   /* ---------------- Version + update check ---------------- */
-  const APP_VERSION='2026.06.08.12';
+  const APP_VERSION='2026.06.08.21';
   (function(){
     const verEl=document.getElementById('appVer');
     const statusEl=document.getElementById('updStatus');
@@ -700,6 +731,20 @@
       // hard reload, cache-busted, to pull the new files
       const u=location.pathname+'?v='+(latest||Date.now());
       location.replace(u);
+    });
+    // manual refresh: ask local server to git-pull (if available), then re-check
+    const refreshBtn=document.getElementById('updCheck');
+    if(refreshBtn) refreshBtn.addEventListener('click',async()=>{
+      refreshBtn.classList.add('spin'); setStatus('업데이트 확인 중…','off');
+      try{
+        const r=await fetch('api/update',{method:'POST',cache:'no-store'});
+        if(r.ok){
+          const j=await r.json().catch(()=>({}));
+          if(j&&j.updated){ setStatus('업데이트 적용 중…','new'); location.replace(location.pathname+'?v='+Date.now()); return; }
+          setStatus('최신 버전입니다','ok'); if(btn) btn.style.display='none';
+        }else{ await check(); }   // no update server → just re-check version.json
+      }catch(e){ await check(); }
+      refreshBtn.classList.remove('spin');
     });
     check();
     setInterval(check, 30*60*1000);          // re-check every 30 min
@@ -790,6 +835,7 @@
     'photos/IMG_8088.JPG','photos/IMG_8126.JPG','photos/IMG_8129.JPG',
     'photos/IMG_8146.JPG','photos/IMG_8165.JPG'
   ];
+  let _slideTimer=null, _slideNext=null;
   function startSlideshow(){
     const bg=document.getElementById('bg'); if(!bg) return;
     const a=document.createElement('img'), b=document.createElement('img');
@@ -798,7 +844,7 @@
     a.src=PHOTOS[0]; a.classList.add('on');
     function preload(src){ const i=new Image(); i.src=src; }
     preload(PHOTOS[1]);
-    function next(){
+    _slideNext=function(){
       cur=(cur+1)%PHOTOS.length;
       back.onload=()=>{
         back.classList.add('on'); front.classList.remove('on');
@@ -806,8 +852,12 @@
         preload(PHOTOS[(cur+1)%PHOTOS.length]);
       };
       back.src=PHOTOS[cur];
-    }
-    setInterval(next, 12000); // 12s per photo
+    };
+    setPhotoInterval((getDisplay().photoSec)||12);
+  }
+  function setPhotoInterval(sec){
+    if(_slideTimer) clearInterval(_slideTimer);
+    if(_slideNext) _slideTimer=setInterval(_slideNext, Math.max(2,sec)*1000);
   }
 
   setIcons();tick();startSlideshow();
@@ -816,6 +866,14 @@
   setInterval(()=>{const l=getLoc();fetchWeather(l.lat,l.lon);},15*60*1000);
 
   /* ---------------- Display (resolution + zoom) settings ---------------- */
+  const BG_DEF={blur:2, dark:34, photoSec:12};
+  function applyBg(){
+    const d=getDisplay();
+    const bl=d.blur!=null?d.blur:BG_DEF.blur;
+    const dk=d.dark!=null?d.dark:BG_DEF.dark;
+    document.documentElement.style.setProperty('--bg-blur', bl+'px');
+    document.documentElement.style.setProperty('--bg-bright', (1-dk/100).toFixed(3));
+  }
   const DISP_PRESETS={
     'auto':null,
     '1080x1920':[1080,1920], '1200x1920':[1200,1920],
@@ -849,7 +907,8 @@
 
     function commit(){
       const v=sel.value;
-      const out={zoom:(+zoom.value||100)/100};
+      const prev=getDisplay();
+      const out=Object.assign({}, prev, {zoom:(+zoom.value||100)/100});
       if(v==='auto'){ out.mode='auto'; }
       else if(v==='custom'){ out.mode='manual'; out.w=+wIn.value||0; out.h=+hIn.value||0; }
       else { out.mode='manual'; out.w=DISP_PRESETS[v][0]; out.h=DISP_PRESETS[v][1]; }
@@ -862,8 +921,39 @@
     if(wIn) wIn.addEventListener('input',commit);
     if(hIn) hIn.addEventListener('input',commit);
     if(zoom) zoom.addEventListener('input',()=>{ if(zoomVal) zoomVal.textContent=zoom.value+'%'; commit(); });
+
+    // ---- background photo controls ----
+    const blur=document.getElementById('bgBlur'), blurVal=document.getElementById('bgBlurVal');
+    const dark=document.getElementById('bgDark'), darkVal=document.getElementById('bgDarkVal');
+    const sec=document.getElementById('bgSec'), secVal=document.getElementById('bgSecVal');
+    function syncBgInputs(){
+      const dd=getDisplay();
+      const bl=dd.blur!=null?dd.blur:BG_DEF.blur;
+      const dk=dd.dark!=null?dd.dark:BG_DEF.dark;
+      const ps=dd.photoSec!=null?dd.photoSec:BG_DEF.photoSec;
+      if(blur){blur.value=bl; if(blurVal)blurVal.textContent=bl+'px';}
+      if(dark){dark.value=dk; if(darkVal)darkVal.textContent=dk+'%';}
+      if(sec){sec.value=ps; if(secVal)secVal.textContent=ps+'초';}
+    }
+    function commitBg(){
+      const out=Object.assign({}, getDisplay(), {blur:+blur.value, dark:+dark.value, photoSec:+sec.value});
+      saveDisplay(out); applyBg(); setPhotoInterval(out.photoSec);
+      if(blurVal)blurVal.textContent=blur.value+'px';
+      if(darkVal)darkVal.textContent=dark.value+'%';
+      if(secVal)secVal.textContent=sec.value+'초';
+    }
+    if(blur) blur.addEventListener('input',commitBg);
+    if(dark) dark.addEventListener('input',commitBg);
+    if(sec) sec.addEventListener('input',commitBg);
+    const reset=document.getElementById('bgReset');
+    if(reset) reset.addEventListener('click',()=>{
+      const out=Object.assign({}, getDisplay(), {blur:BG_DEF.blur, dark:BG_DEF.dark, photoSec:BG_DEF.photoSec});
+      saveDisplay(out); syncBgInputs(); applyBg(); setPhotoInterval(out.photoSec);
+    });
+    syncBgInputs();
   }
   wireDisplay();
+  applyBg();
 
   fit();window.addEventListener('resize',fit);
 

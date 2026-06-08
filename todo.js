@@ -63,7 +63,7 @@
       const c=t.who?colorFor(t.who):null;
       const who=t.who?`<span class="who" style="background:${c.bg};color:${c.fg}">${esc(t.who)}</span>`:'';
       const star=(t.star&&!t.done)?`<span class="star">${STAR}</span>`:'';
-      return `<div class="item${t.done?' done':''}"><span class="cb">${t.done?CHECK:''}</span>${star}<span class="txt">${esc(t.text)}${who}</span></div>`;
+      return `<div class="item${t.done?' done':''}"><span class="cb">${t.done?CHECK:'<i class="dot"></i>'}</span>${star}<span class="txt">${esc(t.text)}${who}</span></div>`;
     }).join('') + (extra>0?`<div class="more">+${extra}개 더</div>`:'');
   }
 
