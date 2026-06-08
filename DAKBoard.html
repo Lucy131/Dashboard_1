@@ -700,7 +700,7 @@
   })();
 
   /* ---------------- Version + update check ---------------- */
-  const APP_VERSION='2026.06.08.21';
+  const APP_VERSION='2026.06.08.22';
   (function(){
     const verEl=document.getElementById('appVer');
     const statusEl=document.getElementById('updStatus');
@@ -715,9 +715,19 @@
         const j=await r.json();
         latest=(j.version||'').toString().trim();
         if(latest && latest!==APP_VERSION){
+          // 새 버전이 디스크에 있으면 자동으로 새로고침 (단, 같은 버전 무한루프 방지)
+          const tried=sessionStorage.getItem('dak.reloadFor');
+          if(tried!==latest){
+            sessionStorage.setItem('dak.reloadFor',latest);
+            setStatus('업데이트 적용 중…','new');
+            location.replace(location.pathname+'?v='+Date.now());
+            return;
+          }
+          // 이미 한 번 새로고침했는데도 그대로면(캐시/미반영) 버튼만 표시
           setStatus('새 버전 '+latest+' 있음','new');
           if(btn) btn.style.display='block';
         }else{
+          sessionStorage.removeItem('dak.reloadFor');
           setStatus('최신 버전입니다','ok');
           if(btn) btn.style.display='none';
         }
@@ -747,7 +757,7 @@
       refreshBtn.classList.remove('spin');
     });
     check();
-    setInterval(check, 30*60*1000);          // re-check every 30 min
+    setInterval(check, 10*60*1000);          // re-check every 10 min
     // also re-check whenever the settings panel is opened
     const lb=document.getElementById('locBtn');
     if(lb) lb.addEventListener('click',check);
