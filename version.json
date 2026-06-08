@@ -1,4 +1,4 @@
 {
-  "version": "2026.06.08.25",
-  "notes": "설정창에서 화면 자동 켜짐/꺼짐 시각 설정 + 지금 끄기/켜기 (server.py /api/screen, /api/schedule)"
+  "version": "2026.06.08.26",
+  "notes": "OTA 시 서버 자동 재시작(install.sh가 NOPASSWD 등록) — 새 업데이트에 재부팅·install.sh 불필요"
 }

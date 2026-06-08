@@ -39,6 +39,12 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now dakboard-server.service
 
+# OTA 업데이트가 비밀번호·재부팅 없이 서버를 재시작할 수 있도록 허용
+sudo tee /etc/sudoers.d/dakboard-restart >/dev/null <<EOF
+$USER_NAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart dakboard-server.service, /bin/systemctl restart dakboard-server.service, /sbin/reboot, /usr/sbin/reboot
+EOF
+sudo chmod 440 /etc/sudoers.d/dakboard-restart
+
 # 3) 부팅 시 Chromium 키오스크 자동실행 (labwc / wayfire / LXDE 모두 대응)
 echo "▶ 키오스크 자동실행 등록..."
 # labwc (Bookworm 기본)
